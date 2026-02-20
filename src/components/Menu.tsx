@@ -30,7 +30,7 @@ export function Menu({ onStart, onQuit, defaultDuration }: MenuProps) {
   return (
     <Box flexDirection="column" alignItems="center" paddingY={2}>
       <Text bold color="yellow">
-        typesprint
+        tsprint
       </Text>
 
       <Box marginTop={2} gap={2}>

@@ -1,9 +1,9 @@
 {
-  "name": "typesprint",
+  "name": "tsprint",
   "module": "index.ts",
   "type": "module",
   "bin": {
-    "typesprint": "src/index.tsx"
+    "tsprint": "src/index.tsx"
   },
   "devDependencies": {
     "@types/bun": "latest",
