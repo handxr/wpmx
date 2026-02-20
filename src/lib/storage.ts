@@ -2,7 +2,7 @@ import { homedir } from "os";
 import { join } from "path";
 import { mkdirSync, readFileSync, existsSync } from "fs";
 
-const DIR = join(homedir(), ".tsprint");
+const DIR = join(homedir(), ".wpmx");
 const HISTORY_PATH = join(DIR, "history.json");
 const SETTINGS_PATH = join(DIR, "settings.json");
 

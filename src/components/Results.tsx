@@ -31,7 +31,7 @@ export function Results({
   return (
     <Box flexDirection="column" alignItems="center" paddingY={2}>
       <Text bold color="yellow">
-        tsprint
+        wpmx
       </Text>
       <Box flexDirection="column" alignItems="center" marginTop={2} gap={0}>
         <Text bold color="white">

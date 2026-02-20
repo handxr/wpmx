@@ -1,10 +1,10 @@
 {
-  "name": "tsprint",
+  "name": "wpmx",
   "version": "1.0.0",
   "description": "A minimal, fast typing test for the terminal",
   "type": "module",
   "bin": {
-    "tsprint": "src/index.tsx"
+    "wpmx": "src/index.tsx"
   },
   "keywords": [
     "typing",
@@ -18,11 +18,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/handxr/tsprint"
+    "url": "https://github.com/handxr/wpmx"
   },
-  "homepage": "https://github.com/handxr/tsprint",
+  "homepage": "https://github.com/handxr/wpmx",
   "bugs": {
-    "url": "https://github.com/handxr/tsprint/issues"
+    "url": "https://github.com/handxr/wpmx/issues"
   },
   "dependencies": {
     "ink": "^6.8.0",

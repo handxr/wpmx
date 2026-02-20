@@ -1,4 +1,4 @@
-# tsprint
+# wpmx
 
 A minimal, fast typing test for the terminal. Built with [Bun](https://bun.sh), [React](https://react.dev), and [Ink](https://github.com/vadimdemedes/ink).
 
@@ -36,7 +36,7 @@ bun run src/index.tsx
 
 Type the words as fast as you can. Errors are highlighted per-character so you can see exactly what you missed. Your WPM and accuracy are calculated at the end.
 
-Results are saved locally at `~/.tsprint/history.json`.
+Results are saved locally at `~/.wpmx/history.json`.
 
 ## License
 

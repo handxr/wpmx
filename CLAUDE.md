@@ -14,14 +14,14 @@ Always use Bun, never Node.js, npm, or npx.
 
 ## Architecture
 
-tsprint is a terminal typing test built with React + [Ink](https://github.com/vadimdemedes/ink) (React renderer for CLIs).
+wpmx is a terminal typing test built with React + [Ink](https://github.com/vadimdemedes/ink) (React renderer for CLIs).
 
 **Screen flow**: Menu → Game → Results → (restart or menu)
 
 - `src/app.tsx` — Screen state machine. Manages which screen is shown and passes callbacks between them.
 - `src/hooks/useGame.ts` — Core game engine. All typing logic lives here: character input, word validation, backspace, scoring (WPM/accuracy). Returns state + handlers consumed by Game component.
 - `src/components/Game.tsx` — Renders game UI and pipes keyboard input to useGame hooks. Handles character-by-character color feedback.
-- `src/lib/storage.ts` — Persists history and settings to `~/.tsprint/`. Uses `Bun.write` for saves, `node:fs` for reads.
+- `src/lib/storage.ts` — Persists history and settings to `~/.wpmx/`. Uses `Bun.write` for saves, `node:fs` for reads.
 - `src/data/words.json` — Word list (~380 common English words).
 
 **Key game logic** (`useGame.ts`):
