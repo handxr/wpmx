@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, useStdout } from "ink";
 import type { Key } from "ink";
 import { useGame, type GameResults } from "../hooks/useGame.ts";
 import { memo, useEffect, useMemo, useCallback } from "react";
@@ -75,6 +75,7 @@ type GameProps = {
 
 export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
   const game = useGame(duration);
+  const { stdout } = useStdout();
 
   useEffect(() => {
     if (game.isFinished) {
@@ -117,9 +118,36 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
     return Math.round((game.correctCharsAcc / 5) / (elapsed / 60));
   }, [game.correctCharsAcc, game.timeLeft, game.isRunning, game.isFinished, duration]);
 
-  const windowStart = Math.max(0, game.currentWordIndex - 5);
-  const windowEnd = game.currentWordIndex + 25;
-  const visibleWords = game.words.slice(windowStart, windowEnd);
+  const currentWordIdx = game.currentWordIndex;
+  const currentWord = game.words[currentWordIdx] || "";
+
+  // Available width after paddingX={2} on each side
+  const termWidth = stdout.columns || 80;
+  const availableWidth = termWidth - 4;
+  const currentWordWidth = Math.max(currentWord.length, game.currentInput.length) + 1;
+  const sideWidth = Math.floor((availableWidth - currentWordWidth) / 2);
+
+  // Past words: walk backwards from current, take as many as fit
+  const leftWords: Array<{ word: string; index: number }> = [];
+  let usedLeft = 0;
+  for (let i = currentWordIdx - 1; i >= 0; i--) {
+    const w = game.words[i];
+    const wWidth = w.length + 1;
+    if (usedLeft + wWidth > sideWidth) break;
+    leftWords.unshift({ word: w, index: i });
+    usedLeft += wWidth;
+  }
+
+  // Future words: walk forward from current, take as many as fit
+  const rightWords: Array<{ word: string; index: number }> = [];
+  let usedRight = 0;
+  for (let i = currentWordIdx + 1; i < game.words.length; i++) {
+    const w = game.words[i];
+    const wWidth = w.length + 1;
+    if (usedRight + wWidth > sideWidth) break;
+    rightWords.push({ word: w, index: i });
+    usedRight += wWidth;
+  }
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
@@ -131,20 +159,18 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
           {liveWpm} wpm
         </Text>
       </Box>
-      <Box marginTop={1} flexWrap="wrap">
-        {visibleWords.map((word, i) => {
-          const wordIndex = windowStart + i;
-
-          if (wordIndex < game.currentWordIndex) {
-            return <PastWord key={wordIndex} word={word} inputChars={game.charInputs[wordIndex]} />;
-          }
-
-          if (wordIndex === game.currentWordIndex) {
-            return <CurrentWord key={wordIndex} word={word} currentInput={game.currentInput} />;
-          }
-
-          return <FutureWord key={wordIndex} word={word} />;
-        })}
+      <Box marginTop={1}>
+        <Box width={sideWidth} justifyContent="flex-end">
+          {leftWords.map(({ word, index }) => (
+            <PastWord key={index} word={word} inputChars={game.charInputs[index]} />
+          ))}
+        </Box>
+        <CurrentWord word={currentWord} currentInput={game.currentInput} />
+        <Box flexGrow={1}>
+          {rightWords.map(({ word, index }) => (
+            <FutureWord key={index} word={word} />
+          ))}
+        </Box>
       </Box>
     </Box>
   );
