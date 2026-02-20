@@ -1,70 +1,15 @@
 import { Box, Text, useInput, useStdout } from "ink";
 import type { Key } from "ink";
 import { useGame, type GameResults } from "../hooks/useGame.ts";
-import { memo, useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, useState } from "react";
 
-const PastWord = memo(({ word, inputChars }: { word: string; inputChars: string[] }) => (
-  <Box marginRight={1}>
-    {word.split("").map((char, charIndex) => {
-      const inputChar = inputChars[charIndex];
-      return (
-        <Text key={charIndex} color={inputChar === char ? "green" : "red"}>
-          {char}
-        </Text>
-      );
-    })}
-    {inputChars.length > word.length &&
-      inputChars
-        .slice(word.length)
-        .map((char, i) => (
-          <Text key={`extra-${i}`} color="red" strikethrough>
-            {char}
-          </Text>
-        ))}
-  </Box>
-));
-
-const FutureWord = memo(({ word }: { word: string }) => (
-  <Box marginRight={1}>
-    <Text dimColor>{word}</Text>
-  </Box>
-));
-
-const CurrentWord = memo(({ word, currentInput }: { word: string; currentInput: string }) => (
-  <Box marginRight={1}>
-    {word.split("").map((char, charIndex) => {
-      const inputChar = currentInput[charIndex];
-      if (inputChar === undefined && charIndex === currentInput.length) {
-        return (
-          <Text key={charIndex} color="white" bold underline>
-            {char}
-          </Text>
-        );
-      }
-      if (inputChar === undefined) {
-        return (
-          <Text key={charIndex} dimColor>
-            {char}
-          </Text>
-        );
-      }
-      return (
-        <Text key={charIndex} color={inputChar === char ? "green" : "red"}>
-          {char}
-        </Text>
-      );
-    })}
-    {currentInput.length > word.length &&
-      currentInput
-        .slice(word.length)
-        .split("")
-        .map((char, i) => (
-          <Text key={`extra-${i}`} color="red">
-            {char}
-          </Text>
-        ))}
-  </Box>
-));
+type StyledChar = {
+  char: string;
+  color?: string;
+  dimColor?: boolean;
+  strikethrough?: boolean;
+  isCursor?: boolean;
+};
 
 type GameProps = {
   duration: number;
@@ -112,46 +57,90 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
 
   useInput(handleInput);
 
+  const [cursorVisible, setCursorVisible] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setCursorVisible((v) => !v), 530);
+    return () => clearInterval(id);
+  }, []);
+
   const liveWpm = useMemo(() => {
     if (!game.isRunning || game.isFinished) return 0;
     const elapsed = (duration - game.timeLeft) || 1;
     return Math.round((game.correctCharsAcc / 5) / (elapsed / 60));
   }, [game.correctCharsAcc, game.timeLeft, game.isRunning, game.isFinished, duration]);
 
-  const currentWordIdx = game.currentWordIndex;
-  const currentWord = game.words[currentWordIdx] || "";
-
-  // Available width after paddingX={2} on each side
   const termWidth = stdout.columns || 80;
   const availableWidth = termWidth - 4;
-  const currentWordWidth = Math.max(currentWord.length, game.currentInput.length) + 1;
-  const sideWidth = Math.floor((availableWidth - currentWordWidth) / 2);
+  const centerCol = Math.floor(availableWidth / 2);
+  const currentWordIdx = game.currentWordIndex;
 
-  // Past words: walk backwards from current, take as many as fit
-  const leftWords: Array<{ word: string; index: number }> = [];
-  let usedLeft = 0;
-  for (let i = currentWordIdx - 1; i >= 0; i--) {
-    const w = game.words[i];
-    const wWidth = w.length + 1;
-    if (usedLeft + wWidth > sideWidth) break;
-    leftWords.unshift({ word: w, index: i });
-    usedLeft += wWidth;
-  }
+  // Build flat styled character array for all words (cursor style applied at render time)
+  const { chars, cursorPos } = useMemo(() => {
+    const chars: StyledChar[] = [];
+    let cursorPos = 0;
 
-  // Future words: walk forward from current, take as many as fit
-  const rightWords: Array<{ word: string; index: number }> = [];
-  let usedRight = 0;
-  for (let i = currentWordIdx + 1; i < game.words.length; i++) {
-    const w = game.words[i];
-    const wWidth = w.length + 1;
-    if (usedRight + wWidth > sideWidth) break;
-    rightWords.push({ word: w, index: i });
-    usedRight += wWidth;
+    for (let wi = 0; wi < game.words.length; wi++) {
+      const word = game.words[wi];
+      const isPast = wi < currentWordIdx;
+      const isCurrent = wi === currentWordIdx;
+
+      if (isPast) {
+        const inputs = game.charInputs[wi] || [];
+        for (let ci = 0; ci < word.length; ci++) {
+          chars.push({ char: word[ci], color: inputs[ci] === word[ci] ? "green" : "red" });
+        }
+        for (let ci = word.length; ci < inputs.length; ci++) {
+          chars.push({ char: inputs[ci], color: "red", strikethrough: true });
+        }
+        chars.push({ char: " " });
+      } else if (isCurrent) {
+        const typedInWord = Math.min(game.currentInput.length, word.length);
+        for (let ci = 0; ci < typedInWord; ci++) {
+          chars.push({ char: word[ci], color: game.currentInput[ci] === word[ci] ? "green" : "red" });
+        }
+        if (game.currentInput.length < word.length) {
+          // Cursor on next untyped character
+          cursorPos = chars.length;
+          chars.push({ char: word[game.currentInput.length], isCursor: true });
+          for (let ci = game.currentInput.length + 1; ci < word.length; ci++) {
+            chars.push({ char: word[ci], dimColor: true });
+          }
+          chars.push({ char: " " });
+        } else {
+          // Extra typed chars beyond word length
+          for (let ci = word.length; ci < game.currentInput.length; ci++) {
+            chars.push({ char: game.currentInput[ci], color: "red" });
+          }
+          // Cursor at space position
+          cursorPos = chars.length;
+          chars.push({ char: " ", isCursor: true });
+        }
+      } else {
+        // Future word
+        for (let ci = 0; ci < word.length; ci++) {
+          chars.push({ char: word[ci], dimColor: true });
+        }
+        chars.push({ char: " " });
+      }
+    }
+
+    return { chars, cursorPos };
+  }, [game.words, game.charInputs, currentWordIdx, game.currentInput]);
+
+  // Extract visible window centered on cursor
+  const windowStart = cursorPos - centerCol;
+  const visibleChars: StyledChar[] = [];
+  for (let i = windowStart; i < windowStart + availableWidth; i++) {
+    if (i >= 0 && i < chars.length) {
+      visibleChars.push(chars[i]);
+    } else {
+      visibleChars.push({ char: " " });
+    }
   }
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
-      <Box justifyContent="space-between">
+      <Box justifyContent="center" gap={2}>
         <Text color="yellow" bold>
           {game.timeLeft}s
         </Text>
@@ -160,17 +149,31 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
         </Text>
       </Box>
       <Box marginTop={1}>
-        <Box width={sideWidth} justifyContent="flex-end">
-          {leftWords.map(({ word, index }) => (
-            <PastWord key={index} word={word} inputChars={game.charInputs[index]} />
-          ))}
-        </Box>
-        <CurrentWord word={currentWord} currentInput={game.currentInput} />
-        <Box flexGrow={1}>
-          {rightWords.map(({ word, index }) => (
-            <FutureWord key={index} word={word} />
-          ))}
-        </Box>
+        <Text>
+          {visibleChars.map((sc, i) => {
+            if (sc.isCursor) {
+              return cursorVisible ? (
+                <Text key={i} backgroundColor="white" color="black">
+                  {sc.char}
+                </Text>
+              ) : (
+                <Text key={i} underline>
+                  {sc.char}
+                </Text>
+              );
+            }
+            return (
+              <Text
+                key={i}
+                color={sc.color}
+                dimColor={sc.dimColor}
+                strikethrough={sc.strikethrough}
+              >
+                {sc.char}
+              </Text>
+            );
+          })}
+        </Text>
       </Box>
     </Box>
   );
