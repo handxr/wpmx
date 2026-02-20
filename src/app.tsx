@@ -21,6 +21,10 @@ export type GameResults = {
 
 export function App() {
   const { exit } = useApp();
+  const handleQuit = useCallback(() => {
+    exit();
+    process.exit(0);
+  }, [exit]);
   const [screen, setScreen] = useState<Screen>("menu");
   const [duration, setDuration] = useState<Duration>(() => loadSettings().lastDuration);
   const [results, setResults] = useState<GameResults | null>(null);
@@ -57,7 +61,7 @@ export function App() {
   }, []);
 
   if (screen === "menu") {
-    return <Menu onStart={handleStart} onQuit={exit} defaultDuration={duration} />;
+    return <Menu onStart={handleStart} onQuit={handleQuit} defaultDuration={duration} />;
   }
 
   if (screen === "game") {
@@ -80,7 +84,7 @@ export function App() {
         personalBest={pb}
         onRestart={handleRestart}
         onMenu={handleMenu}
-        onQuit={exit}
+        onQuit={handleQuit}
       />
     );
   }
