@@ -8,11 +8,11 @@ export type GameState = {
   timeLeft: number;
   isRunning: boolean;
   isFinished: boolean;
-  wordResults: Array<"correct" | "incorrect" | "pending">;
 };
 
 export type GameHook = GameState & {
   charInputs: string[][];
+  correctCharsAcc: number;
   startGame: () => void;
   handleChar: (char: string) => void;
   handleBackspace: () => void;
@@ -39,15 +39,27 @@ export function useGame(duration: number) {
   const charInputsRef = useRef<string[][]>(
     Array.from({ length: wordCount }, () => [])
   );
-  const [state, setState] = useState<GameState>(() => ({
-    words: generateWords(wordCount),
-    currentWordIndex: 0,
-    currentInput: "",
-    timeLeft: duration,
-    isRunning: false,
-    isFinished: false,
-    wordResults: Array(wordCount).fill("pending"),
-  }));
+  const wordsRef = useRef<string[]>([]);
+  const currentWordIndexRef = useRef(0);
+  const isFinishedRef = useRef(false);
+  const isRunningRef = useRef(false);
+  const correctCharsAccRef = useRef(0);
+  const totalCharsAccRef = useRef(0);
+  const wordCorrectCharsRef = useRef<number[]>([]);
+  const wordTotalCharsRef = useRef<number[]>([]);
+
+  const [state, setState] = useState<GameState>(() => {
+    const generatedWords = generateWords(wordCount);
+    wordsRef.current = generatedWords;
+    return {
+      words: generatedWords,
+      currentWordIndex: 0,
+      currentInput: "",
+      timeLeft: duration,
+      isRunning: false,
+      isFinished: false,
+    };
+  });
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -55,116 +67,123 @@ export function useGame(duration: number) {
   useEffect(() => {
     if (state.isRunning && !state.isFinished) {
       timerRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        const newTimeLeft = Math.max(duration - elapsed, 0);
         setState((prev) => {
-          const newTimeLeft = prev.timeLeft - 1;
+          if (prev.timeLeft === newTimeLeft) return prev;
           if (newTimeLeft <= 0) {
             if (timerRef.current) clearInterval(timerRef.current);
+            isFinishedRef.current = true;
+            isRunningRef.current = false;
             return { ...prev, timeLeft: 0, isRunning: false, isFinished: true };
           }
           return { ...prev, timeLeft: newTimeLeft };
         });
-      }, 1000);
+      }, 200);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [state.isRunning, state.isFinished]);
+  }, [state.isRunning, state.isFinished, duration]);
 
   const startGame = useCallback(() => {
     startTimeRef.current = Date.now();
+    isRunningRef.current = true;
     setState((prev) => ({ ...prev, isRunning: true }));
   }, []);
 
   const handleChar = useCallback((char: string) => {
-    setState((prev) => {
-      if (prev.isFinished) return prev;
-      charInputsRef.current[prev.currentWordIndex].push(char);
-      if (!prev.isRunning) {
-        startTimeRef.current = Date.now();
-        return {
-          ...prev,
-          isRunning: true,
-          currentInput: prev.currentInput + char,
-        };
-      }
-      return {
-        ...prev,
-        currentInput: prev.currentInput + char,
-      };
-    });
+    if (isFinishedRef.current) return;
+    charInputsRef.current[currentWordIndexRef.current].push(char);
+    if (!isRunningRef.current) {
+      startTimeRef.current = Date.now();
+      isRunningRef.current = true;
+    }
+    setState((prev) => ({
+      ...prev,
+      isRunning: true,
+      currentInput: prev.currentInput + char,
+    }));
   }, []);
 
   const handleBackspace = useCallback(() => {
-    setState((prev) => {
-      if (prev.isFinished) return prev;
+    if (isFinishedRef.current) return;
 
-      if (prev.currentInput.length === 0) {
-        if (prev.currentWordIndex === 0) return prev;
-        const prevIndex = prev.currentWordIndex - 1;
-        const prevInput = charInputsRef.current[prevIndex].join("");
-        const newWordResults = [...prev.wordResults];
-        newWordResults[prevIndex] = "pending";
-        return {
-          ...prev,
-          currentWordIndex: prevIndex,
-          currentInput: prevInput,
-          wordResults: newWordResults,
-        };
-      }
+    const currentIdx = currentWordIndexRef.current;
+    const currentChars = charInputsRef.current[currentIdx];
 
-      charInputsRef.current[prev.currentWordIndex].pop();
-      return {
+    if (currentChars.length === 0) {
+      if (currentIdx === 0) return;
+      const prevIndex = currentIdx - 1;
+      currentWordIndexRef.current = prevIndex;
+      const lastCorrect = wordCorrectCharsRef.current.pop() || 0;
+      const lastTotal = wordTotalCharsRef.current.pop() || 0;
+      correctCharsAccRef.current -= lastCorrect;
+      totalCharsAccRef.current -= lastTotal;
+      const prevInput = charInputsRef.current[prevIndex].join("");
+      setState((prev) => ({
+        ...prev,
+        currentWordIndex: prevIndex,
+        currentInput: prevInput,
+      }));
+    } else {
+      charInputsRef.current[currentIdx].pop();
+      setState((prev) => ({
         ...prev,
         currentInput: prev.currentInput.slice(0, -1),
-      };
-    });
+      }));
+    }
   }, []);
 
   const handleSpace = useCallback(() => {
-    setState((prev) => {
-      if (prev.isFinished || !prev.isRunning) return prev;
-      const word = prev.words[prev.currentWordIndex];
-      const isCorrect = prev.currentInput === word;
-      const newWordResults = [...prev.wordResults];
-      newWordResults[prev.currentWordIndex] = isCorrect
-        ? "correct"
-        : "incorrect";
-      return {
-        ...prev,
-        currentWordIndex: prev.currentWordIndex + 1,
-        currentInput: "",
-        wordResults: newWordResults,
-      };
-    });
+    if (isFinishedRef.current || !isRunningRef.current) return;
+
+    const currentIdx = currentWordIndexRef.current;
+    const word = wordsRef.current[currentIdx];
+    const inputChars = charInputsRef.current[currentIdx];
+    const input = inputChars.join("");
+
+    let correct = 0;
+    if (input === word) {
+      correct = word.length + 1;
+    } else {
+      for (let j = 0; j < word.length; j++) {
+        if (inputChars[j] === word[j]) correct++;
+      }
+    }
+    const total = Math.max(word.length, input.length) + 1;
+
+    wordCorrectCharsRef.current.push(correct);
+    wordTotalCharsRef.current.push(total);
+    correctCharsAccRef.current += correct;
+    totalCharsAccRef.current += total;
+    currentWordIndexRef.current = currentIdx + 1;
+
+    setState((prev) => ({
+      ...prev,
+      currentWordIndex: currentIdx + 1,
+      currentInput: "",
+    }));
   }, []);
 
   const getResults = useCallback((): GameResults => {
-    let correctChars = 0;
-    let totalChars = 0;
-
-    for (let i = 0; i < state.currentWordIndex; i++) {
-      const word = state.words[i];
-      const input = charInputsRef.current[i].join("");
-      totalChars += Math.max(word.length, input.length) + 1;
-      if (input === word) {
-        correctChars += word.length + 1;
-      } else {
-        for (let j = 0; j < word.length; j++) {
-          if (input[j] === word[j]) correctChars++;
-        }
-      }
-    }
-
-    const timeElapsed = duration;
-    const wpm = totalChars > 0 ? Math.round((correctChars / 5) / (timeElapsed / 60)) : 0;
-    const accuracy = totalChars > 0 ? Math.round((correctChars / totalChars) * 1000) / 10 : 0;
-
+    const correctChars = correctCharsAccRef.current;
+    const totalChars = totalCharsAccRef.current;
+    const wpm =
+      totalChars > 0
+        ? Math.round((correctChars / 5) / (duration / 60))
+        : 0;
+    const accuracy =
+      totalChars > 0
+        ? Math.round((correctChars / totalChars) * 1000) / 10
+        : 0;
     return { wpm, accuracy, time: duration };
-  }, [state.currentWordIndex, state.words, duration]);
+  }, [duration]);
 
   return {
     ...state,
     charInputs: charInputsRef.current,
+    correctCharsAcc: correctCharsAccRef.current,
     startGame,
     handleChar,
     handleBackspace,

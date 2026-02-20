@@ -21,9 +21,8 @@ export type GameResults = {
 
 export function App() {
   const { exit } = useApp();
-  const settings = loadSettings();
   const [screen, setScreen] = useState<Screen>("menu");
-  const [duration, setDuration] = useState<Duration>(settings.lastDuration);
+  const [duration, setDuration] = useState<Duration>(() => loadSettings().lastDuration);
   const [results, setResults] = useState<GameResults | null>(null);
   const [gameKey, setGameKey] = useState(0);
 
