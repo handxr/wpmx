@@ -1,7 +1,7 @@
 import { Box, Text, useInput, useStdout } from "ink";
 import type { Key } from "ink";
 import { useGame, type GameResults } from "../hooks/useGame.ts";
-import { memo, useEffect, useMemo, useCallback } from "react";
+import { memo, useEffect, useMemo, useCallback, useState } from "react";
 
 const PastWord = memo(({ word, inputChars }: { word: string; inputChars: string[] }) => (
   <Box marginRight={1}>
@@ -30,41 +30,50 @@ const FutureWord = memo(({ word }: { word: string }) => (
   </Box>
 ));
 
-const CurrentWord = memo(({ word, currentInput }: { word: string; currentInput: string }) => (
-  <Box marginRight={1}>
-    {word.split("").map((char, charIndex) => {
-      const inputChar = currentInput[charIndex];
-      if (inputChar === undefined && charIndex === currentInput.length) {
+const CurrentWord = memo(
+  ({ word, currentInput, cursorVisible }: { word: string; currentInput: string; cursorVisible: boolean }) => (
+    <Box marginRight={1}>
+      {word.split("").map((char, charIndex) => {
+        const inputChar = currentInput[charIndex];
+        const isCursor = charIndex === currentInput.length;
+        if (isCursor && inputChar === undefined) {
+          return cursorVisible ? (
+            <Text key={charIndex} backgroundColor="white" color="black">
+              {char}
+            </Text>
+          ) : (
+            <Text key={charIndex} dimColor>
+              {char}
+            </Text>
+          );
+        }
+        if (inputChar === undefined) {
+          return (
+            <Text key={charIndex} dimColor>
+              {char}
+            </Text>
+          );
+        }
         return (
-          <Text key={charIndex} color="white" bold underline>
+          <Text key={charIndex} color={inputChar === char ? "green" : "red"}>
             {char}
           </Text>
         );
-      }
-      if (inputChar === undefined) {
-        return (
-          <Text key={charIndex} dimColor>
-            {char}
-          </Text>
-        );
-      }
-      return (
-        <Text key={charIndex} color={inputChar === char ? "green" : "red"}>
-          {char}
-        </Text>
-      );
-    })}
-    {currentInput.length > word.length &&
-      currentInput
-        .slice(word.length)
-        .split("")
-        .map((char, i) => (
-          <Text key={`extra-${i}`} color="red">
-            {char}
-          </Text>
-        ))}
-  </Box>
-));
+      })}
+      {currentInput.length > word.length &&
+        currentInput
+          .slice(word.length)
+          .split("")
+          .map((char, i) => (
+            <Text key={`extra-${i}`} color="red">
+              {char}
+            </Text>
+          ))}
+      {currentInput.length >= word.length &&
+        (cursorVisible ? <Text backgroundColor="white"> </Text> : <Text> </Text>)}
+    </Box>
+  ),
+);
 
 type GameProps = {
   duration: number;
@@ -111,6 +120,12 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
   );
 
   useInput(handleInput);
+
+  const [cursorVisible, setCursorVisible] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setCursorVisible((v) => !v), 530);
+    return () => clearInterval(id);
+  }, []);
 
   const liveWpm = useMemo(() => {
     if (!game.isRunning || game.isFinished) return 0;
@@ -165,7 +180,7 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
             <PastWord key={index} word={word} inputChars={game.charInputs[index]} />
           ))}
         </Box>
-        <CurrentWord word={currentWord} currentInput={game.currentInput} />
+        <CurrentWord word={currentWord} currentInput={game.currentInput} cursorVisible={cursorVisible} />
         <Box flexGrow={1}>
           {rightWords.map(({ word, index }) => (
             <FutureWord key={index} word={word} />
