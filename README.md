@@ -10,15 +10,38 @@ A minimal, fast typing test for the terminal. Built with [Bun](https://bun.sh), 
 - **Personal best** tracking with local history
 - **Vim-style navigation** — `h`/`l` to pick duration
 
-## Install
+## Quick start
+
+Run it instantly without installing:
 
 ```bash
-bun install
+npx wpmx
 ```
 
-## Run
+or with Bun:
 
 ```bash
+bunx wpmx
+```
+
+## Install globally
+
+```bash
+npm install -g wpmx
+```
+
+Then run it anywhere:
+
+```bash
+wpmx
+```
+
+## Development
+
+```bash
+git clone https://github.com/handxr/wpmx.git
+cd wpmx
+bun install
 bun run src/index.tsx
 ```
 
