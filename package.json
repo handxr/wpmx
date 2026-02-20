@@ -1,6 +1,6 @@
 {
   "name": "wpmx",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A minimal, fast typing test for the terminal",
   "type": "module",
   "bin": {
