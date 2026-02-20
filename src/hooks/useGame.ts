@@ -97,7 +97,24 @@ export function useGame(duration: number) {
 
   const handleBackspace = useCallback(() => {
     setState((prev) => {
-      if (prev.isFinished || prev.currentInput.length === 0) return prev;
+      if (prev.isFinished) return prev;
+
+      // If current input is empty, go back to previous word
+      if (prev.currentInput.length === 0) {
+        if (prev.currentWordIndex === 0) return prev;
+        const prevIndex = prev.currentWordIndex - 1;
+        const prevInput = prev.charInputs[prevIndex].join("");
+        const newWordResults = [...prev.wordResults];
+        newWordResults[prevIndex] = "pending";
+        return {
+          ...prev,
+          currentWordIndex: prevIndex,
+          currentInput: prevInput,
+          wordResults: newWordResults,
+        };
+      }
+
+      // Otherwise delete last char of current word
       const newCharInputs = [...prev.charInputs];
       newCharInputs[prev.currentWordIndex] = newCharInputs[
         prev.currentWordIndex
