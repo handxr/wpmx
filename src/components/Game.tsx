@@ -6,9 +6,10 @@ type GameProps = {
   duration: number;
   onFinish: (results: GameResults) => void;
   onExit: () => void;
+  onRestart: () => void;
 };
 
-export function Game({ duration, onFinish, onExit }: GameProps) {
+export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
   const game = useGame(duration);
 
   useEffect(() => {
@@ -20,6 +21,10 @@ export function Game({ duration, onFinish, onExit }: GameProps) {
   useInput((input, key) => {
     if (key.escape) {
       onExit();
+      return;
+    }
+    if (key.tab) {
+      onRestart();
       return;
     }
     if (game.isFinished) return;

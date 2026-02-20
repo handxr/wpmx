@@ -18,9 +18,11 @@ export function App() {
   const [screen, setScreen] = useState<Screen>("menu");
   const [duration, setDuration] = useState<Duration>(30);
   const [results, setResults] = useState<GameResults | null>(null);
+  const [gameKey, setGameKey] = useState(0);
 
   const handleStart = useCallback((d: Duration) => {
     setDuration(d);
+    setGameKey((k) => k + 1);
     setScreen("game");
   }, []);
 
@@ -30,6 +32,7 @@ export function App() {
   }, []);
 
   const handleRestart = useCallback(() => {
+    setGameKey((k) => k + 1);
     setScreen("game");
   }, []);
 
@@ -44,10 +47,11 @@ export function App() {
   if (screen === "game") {
     return (
       <Game
-        key={Date.now()}
+        key={gameKey}
         duration={duration}
         onFinish={handleFinish}
         onExit={handleMenu}
+        onRestart={handleRestart}
       />
     );
   }
