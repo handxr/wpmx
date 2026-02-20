@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useApp } from "ink";
 import { Menu } from "./components/Menu.tsx";
 import { Game } from "./components/Game.tsx";
 import { Results } from "./components/Results.tsx";
@@ -19,6 +20,7 @@ export type GameResults = {
 };
 
 export function App() {
+  const { exit } = useApp();
   const settings = loadSettings();
   const [screen, setScreen] = useState<Screen>("menu");
   const [duration, setDuration] = useState<Duration>(settings.lastDuration);
@@ -56,7 +58,7 @@ export function App() {
   }, []);
 
   if (screen === "menu") {
-    return <Menu onStart={handleStart} defaultDuration={duration} />;
+    return <Menu onStart={handleStart} onQuit={exit} defaultDuration={duration} />;
   }
 
   if (screen === "game") {
@@ -79,6 +81,7 @@ export function App() {
         personalBest={pb}
         onRestart={handleRestart}
         onMenu={handleMenu}
+        onQuit={exit}
       />
     );
   }

@@ -6,6 +6,7 @@ type ResultsProps = {
   personalBest: number | null;
   onRestart: () => void;
   onMenu: () => void;
+  onQuit: () => void;
 };
 
 export function Results({
@@ -13,12 +14,15 @@ export function Results({
   personalBest,
   onRestart,
   onMenu,
+  onQuit,
 }: ResultsProps) {
   useInput((input, key) => {
     if (key.tab) {
       onRestart();
     } else if (key.escape) {
       onMenu();
+    } else if (input === "q") {
+      onQuit();
     }
   });
 
@@ -47,6 +51,7 @@ export function Results({
       <Box marginTop={2} gap={2}>
         <Text dimColor>Tab → restart</Text>
         <Text dimColor>Esc → menu</Text>
+        <Text dimColor>q → quit</Text>
       </Box>
     </Box>
   );

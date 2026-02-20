@@ -6,18 +6,21 @@ const DURATIONS: Duration[] = [15, 30, 60];
 
 type MenuProps = {
   onStart: (duration: Duration) => void;
+  onQuit: () => void;
   defaultDuration: Duration;
 };
 
-export function Menu({ onStart, defaultDuration }: MenuProps) {
+export function Menu({ onStart, onQuit, defaultDuration }: MenuProps) {
   const [selectedIndex, setSelectedIndex] = useState(
     DURATIONS.indexOf(defaultDuration)
   );
 
   useInput((input, key) => {
-    if (key.leftArrow) {
+    if (input === "q") {
+      onQuit();
+    } else if (key.leftArrow || input === "h") {
       setSelectedIndex((prev) => Math.max(0, prev - 1));
-    } else if (key.rightArrow) {
+    } else if (key.rightArrow || input === "l") {
       setSelectedIndex((prev) => Math.min(DURATIONS.length - 1, prev + 1));
     } else if (key.return) {
       onStart(DURATIONS[selectedIndex]);
@@ -44,7 +47,7 @@ export function Menu({ onStart, defaultDuration }: MenuProps) {
       </Box>
 
       <Box marginTop={1}>
-        <Text dimColor>← / → to choose, Enter to start</Text>
+        <Text dimColor>h / l or ← / → to choose, Enter to start</Text>
       </Box>
 
       <Box flexDirection="column" marginTop={2} gap={0}>
@@ -56,7 +59,7 @@ export function Menu({ onStart, defaultDuration }: MenuProps) {
           <Text color="gray">Esc</Text>    back to menu
         </Text>
         <Text dimColor>
-          <Text color="gray">Ctrl+C</Text> quit
+          <Text color="gray">q</Text>      quit
         </Text>
       </Box>
     </Box>
