@@ -71,20 +71,9 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
 
   const liveWpm = useMemo(() => {
     if (!game.isRunning || game.isFinished) return 0;
-    let correct = 0;
-    for (let i = 0; i < game.currentWordIndex; i++) {
-      const word = game.words[i];
-      const input = game.charInputs[i].join("");
-      if (input === word) correct += word.length + 1;
-      else {
-        for (let j = 0; j < word.length; j++) {
-          if (input[j] === word[j]) correct++;
-        }
-      }
-    }
     const elapsed = (duration - game.timeLeft) || 1;
-    return Math.round((correct / 5) / (elapsed / 60));
-  }, [game.currentWordIndex, game.timeLeft, game.isRunning, game.isFinished]);
+    return Math.round((game.correctCharsAcc / 5) / (elapsed / 60));
+  }, [game.correctCharsAcc, game.timeLeft, game.isRunning, game.isFinished, duration]);
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
