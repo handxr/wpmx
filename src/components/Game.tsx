@@ -1,7 +1,7 @@
 import { Box, Text, useInput, useStdout } from "ink";
 import type { Key } from "ink";
 import { useGame, type GameResults } from "../hooks/useGame.ts";
-import { useEffect, useMemo, useCallback, useState } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 
 type StyledChar = {
   char: string;
@@ -57,11 +57,6 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
 
   useInput(handleInput);
 
-  const [cursorVisible, setCursorVisible] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => setCursorVisible((v) => !v), 530);
-    return () => clearInterval(id);
-  }, []);
 
   const liveWpm = useMemo(() => {
     if (!game.isRunning || game.isFinished) return 0;
@@ -152,11 +147,7 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
         <Text>
           {visibleChars.map((sc, i) => {
             if (sc.isCursor) {
-              return cursorVisible ? (
-                <Text key={i} backgroundColor="white" color="black">
-                  {sc.char}
-                </Text>
-              ) : (
+              return (
                 <Text key={i} underline>
                   {sc.char}
                 </Text>
