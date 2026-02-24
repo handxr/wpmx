@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useApp } from "ink";
+import { Box, useApp, useStdout } from "ink";
 import { Menu } from "./components/Menu.tsx";
 import { Game } from "./components/Game.tsx";
 import { Results } from "./components/Results.tsx";
@@ -21,6 +21,7 @@ export type GameResults = {
 
 export function App() {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const handleQuit = useCallback(() => {
     exit();
     process.exit(0);
@@ -60,12 +61,12 @@ export function App() {
     setScreen("menu");
   }, []);
 
-  if (screen === "menu") {
-    return <Menu onStart={handleStart} onQuit={handleQuit} defaultDuration={duration} />;
-  }
+  let content = null;
 
-  if (screen === "game") {
-    return (
+  if (screen === "menu") {
+    content = <Menu onStart={handleStart} onQuit={handleQuit} defaultDuration={duration} />;
+  } else if (screen === "game") {
+    content = (
       <Game
         key={gameKey}
         duration={duration}
@@ -74,11 +75,9 @@ export function App() {
         onRestart={handleRestart}
       />
     );
-  }
-
-  if (screen === "results" && results) {
+  } else if (screen === "results" && results) {
     const pb = getPersonalBest(results.time);
-    return (
+    content = (
       <Results
         results={results}
         personalBest={pb}
@@ -89,5 +88,9 @@ export function App() {
     );
   }
 
-  return null;
+  return (
+    <Box flexDirection="column" justifyContent="center" alignItems="center" minHeight={stdout.rows}>
+      {content}
+    </Box>
+  );
 }

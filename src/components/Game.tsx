@@ -58,12 +58,6 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
   useInput(handleInput);
 
 
-  const liveWpm = useMemo(() => {
-    if (!game.isRunning || game.isFinished) return 0;
-    const elapsed = (duration - game.timeLeft) || 1;
-    return Math.round((game.correctCharsAcc / 5) / (elapsed / 60));
-  }, [game.correctCharsAcc, game.timeLeft, game.isRunning, game.isFinished, duration]);
-
   const termWidth = stdout.columns || 80;
   const availableWidth = termWidth - 4;
   const centerCol = Math.floor(availableWidth / 2);
@@ -135,12 +129,9 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
 
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
-      <Box justifyContent="center" gap={2}>
+      <Box justifyContent="center">
         <Text color="yellow" bold>
           {game.timeLeft}s
-        </Text>
-        <Text color="yellow" bold>
-          {liveWpm} wpm
         </Text>
       </Box>
       <Box marginTop={1}>
