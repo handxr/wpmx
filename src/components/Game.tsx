@@ -59,7 +59,8 @@ export function Game({ duration, onFinish, onExit, onRestart }: GameProps) {
 
 
   const termWidth = stdout.columns || 80;
-  const availableWidth = termWidth - 4;
+  // Keep the typing area focused: 76 characters plus 4 columns of horizontal padding.
+  const availableWidth = Math.max(1, Math.min(76, termWidth - 4));
   const centerCol = Math.floor(availableWidth / 2);
   const currentWordIdx = game.currentWordIndex;
 
